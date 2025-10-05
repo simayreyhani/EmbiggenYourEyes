@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASA Uzay Görüntü Keşif Platformu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e27;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #1a1d3a 0%, #0f1123 100%);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            background: rgba(102, 126, 234, 0.2);
+            border: 2px solid #667eea;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            background: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .canvas-container {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        .canvas-container:active {
+            cursor: grabbing;
+        }
+
+        #spaceCanvas {
+            width: 100%;
+            height: 100%;
+            image-rendering: crisp-edges;
+        }
+
+        .info-panel {
+            position: fixed;
+            background: linear-gradient(135deg, rgba(26, 29, 58, 0.95) 0%, rgba(15, 17, 35, 0.95) 100%);
+            border: 2px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 350px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 999;
+            backdrop-filter: blur(10px);
+        }
+
+        .info-panel.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .info-panel h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .info-panel p {
+            line-height: 1.6;
+            margin-bottom: 10px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .info-panel .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #667eea;
+            margin-top: 3px;
+        }
+
+        .marker {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            background: rgba(102, 126, 234, 0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+            animation: pulse 2s infinite;
+            pointer-events: auto;
+        }
+
+        .marker:hover {
+            transform: scale(1.3);
+            background: rgba(102, 126, 234, 0.6);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 15px rgba(102, 126, 234, 0);
+            }
+        }
+
+        .zoom-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(26, 29, 58, 0.9);
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 2px solid #667eea;
+            font-weight: bold;
+            z-index: 999;
+        }
+
+        .legend {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(26, 29, 58, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #667eea;
+            z-index: 999;
+            max-width: 200px;
+        }
+
+        .legend h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #667eea;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 59, 48, 0.2);
+            border: 2px solid #ff3b30;
+            color: #ff3b30;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .close-btn:hover {
+            background: #ff3b30;
+            color: white;
+            transform: rotate(90deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <span>🌌</span>
+            NASA Uzay Keşif Platformu
+        </div>
+        <div class="controls">
+            <div class="zoom-controls">
+                <button class="btn" onclick="zoomIn()">🔍 Yakınlaştır</button>
+                <button class="btn" onclick="zoomOut()">🔍 Uzaklaştır</button>
+            </div>
+            <button class="btn" onclick="resetView()">↻ Sıfırla</button>
+        </div>
+    </div>
+
+    <div class="canvas-container" id="canvasContainer">
+        <canvas id="spaceCanvas"></canvas>
+    </div>
+
+    <div class="info-panel" id="infoPanel">
+        <button class="close-btn" onclick="closeInfoPanel()">×</button>
+        <h3 id="objectName"></h3>
+        <p id="objectDescription"></p>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">Uzaklık</div>
+                <div class="stat-value" id="distance"></div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Tür</div>
+                <div class="stat-value" id="type"></div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Keşif Tarihi</div>
+                <div class="stat-value" id="discovered"></div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Büyüklük</div>
+                <div class="stat-value" id="size"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="zoom-indicator" id="zoomIndicator">
+        Zoom: <span id="zoomLevel">100%</span>
+    </div>
+
+    <div class="legend">
+        <h4>Cisim Türleri</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background: rgba(102, 126, 234, 0.3);"></div>
+            <span>Nebula (Bulutsu)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: rgba(234, 102, 126, 0.3);"></div>
+            <span>Yıldız Kümesi</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: rgba(126, 234, 102, 0.3);"></div>
+            <span>Galaksi</span>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('spaceCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvasContainer');
+        const infoPanel = document.getElementById('infoPanel');
+
+        let zoom = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+        let isDragging = false;
+        let startX, startY;
+
+        // Uzay cisimleri verisi
+        const spaceObjects = [
+            {
+                id: 'orion',
+                name: 'Orion Bulutsusu (M42)',
+                x: 400,
+                y: 300,
+                description: 'Orion Bulutsusu, Samanyolu galaksisindeki en parlak ve en yakın yıldız oluşum bölgelerinden biridir. Kılıç Kuşağı takımyıldızında yer alır ve çıplak gözle görülebilir.',
+                distance: '1,344 ışık yılı',
+                type: 'Emisyon Bulutsusu',
+                discovered: '1610',
+                size: '24 ışık yılı',
+                color: '#667eea'
+            },
+            {
+                id: 'pleiades',
+                name: 'Ülker (Pleiades - M45)',
+                x: 800,
+                y: 200,
+                description: 'Ülker, Boğa takımyıldızında yer alan açık yıldız kümesidir. Türk kültüründe "Ülker" olarak bilinir. Yaklaşık 100 milyon yıllık genç ve sıcak mavi yıldızlardan oluşur.',
+                distance: '444 ışık yılı',
+                type: 'Açık Yıldız Kümesi',
+                discovered: 'M.Ö. ~1000',
+                size: '8 ışık yılı',
+                color: '#ea667e'
+            },
+            {
+                id: 'andromeda',
+                name: 'Andromeda Galaksisi (M31)',
+                x: 1200,
+                y: 400,
+                description: 'Andromeda Galaksisi, Samanyolu\'na en yakın büyük sarmal galaksidir. Yaklaşık 4.5 milyar yıl sonra Samanyolu ile çarpışacağı tahmin edilmektedir.',
+                distance: '2.537 milyon ışık yılı',
+                type: 'Sarmal Galaksi',
+                discovered: '964',
+                size: '220.000 ışık yılı',
+                color: '#7eea66'
+            },
+            {
+                id: 'crab',
+                name: 'Yengeç Bulutsusu (M1)',
+                x: 600,
+                y: 500,
+                description: 'Yengeç Bulutsusu, 1054 yılında gözlemlenen bir süpernova patlamasının kalıntısıdır. Merkezinde hızla dönen bir pulsar (nötron yıldızı) bulunur.',
+                distance: '6,500 ışık yılı',
+                type: 'Süpernova Kalıntısı',
+                discovered: '1731',
+                size: '11 ışık yılı',
+                color: '#ea9d66'
+            },
+            {
+                id: 'ring',
+                name: 'Halka Bulutsusu (M57)',
+                x: 300,
+                y: 600,
+                description: 'Halka Bulutsusu, Lir takımyıldızında bulunan gezegen bulutsusudur. Güneş benzeri bir yıldızın ömrünün son evrelerinde attığı dış katmanlardan oluşmuştur.',
+                distance: '2,300 ışık yılı',
+                type: 'Gezegen Bulutsusu',
+                discovered: '1779',
+                size: '1 ışık yılı',
+                color: '#9d66ea'
+            },
+            {
+                id: 'eagle',
+                name: 'Kartal Bulutsusu (M16)',
+                x: 1000,
+                y: 600,
+                description: 'Kartal Bulutsusu, ünlü "Yaratılış Sütunları" fotografıyla tanınır. Aktif yıldız oluşum bölgesi olan bu nebula, genç yıldızların doğduğu dev gaz ve toz sütunları içerir.',
+                distance: '7,000 ışık yılı',
+                type: 'Emisyon Bulutsusu',
+                discovered: '1745',
+                size: '70 ışık yılı',
+                color: '#66d4ea'
+            }
+        ];
+
+        let markers = [];
+
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            drawSpace();
+        }
+
+        function createStarfield() {
+            ctx.fillStyle = '#0a0e27';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Yıldızlar
+            for (let i = 0; i < 500; i++) {
+                const x = Math.random() * canvas.width * 3;
+                const y = Math.random() * canvas.height * 3;
+                const radius = Math.random() * 1.5;
+                const opacity = Math.random() * 0.7 + 0.3;
+                
+                ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Nebula efektleri
+            for (let i = 0; i < 3; i++) {
+                const x = Math.random() * canvas.width * 3;
+                const y = Math.random() * canvas.height * 3;
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 300);
+                gradient.addColorStop(0, `rgba(102, 126, 234, 0.1)`);
+                gradient.addColorStop(0.5, `rgba(118, 75, 162, 0.05)`);
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function drawSpace() {
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(zoom, zoom);
+            
+            createStarfield();
+            
+            // Uzay cisimlerini çiz
+            spaceObjects.forEach(obj => {
+                // Glow efekti
+                const gradient = ctx.createRadialGradient(obj.x, obj.y, 0, obj.x, obj.y, 50);
+                gradient.addColorStop(0, obj.color);
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(obj.x, obj.y, 50, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Merkez işareti
+                ctx.fillStyle = obj.color;
+                ctx.beginPath();
+                ctx.arc(obj.x, obj.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // İsim etiketi (zoom yeterince yakınsa)
+                if (zoom > 1.5) {
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(obj.name.split('(')[0].trim(), obj.x, obj.y - 60);
+                }
+            });
+            
+            ctx.restore();
+            updateMarkers();
+        }
+
+        function updateMarkers() {
+            // Mevcut marker'ları temizle
+            markers.forEach(m => m.remove());
+            markers = [];
+            
+            // Yeni marker'lar oluştur
+            spaceObjects.forEach(obj => {
+                const screenX = obj.x * zoom + offsetX;
+                const screenY = obj.y * zoom + offsetY;
+                
+                if (screenX >= -50 && screenX <= canvas.width + 50 &&
+                    screenY >= -50 && screenY <= canvas.height + 50) {
+                    
+                    const marker = document.createElement('div');
+                    marker.className = 'marker';
+                    marker.style.left = `${screenX - 15}px`;
+                    marker.style.top = `${screenY - 15 + 70}px`;
+                    marker.style.borderColor = obj.color;
+                    marker.style.background = obj.color.replace(')', ', 0.3)').replace('rgb', 'rgba');
+                    
+                    marker.addEventListener('mouseenter', () => showInfo(obj, screenX, screenY));
+                    marker.addEventListener('mouseleave', () => {
+                        setTimeout(() => {
+                            if (!infoPanel.matches(':hover')) {
+                                closeInfoPanel();
+                            }
+                        }, 100);
+                    });
+                    
+                    container.appendChild(marker);
+                    markers.push(marker);
+                }
+            });
+        }
+
+        function showInfo(obj, x, y) {
+            document.getElementById('objectName').textContent = obj.name;
+            document.getElementById('objectDescription').textContent = obj.description;
+            document.getElementById('distance').textContent = obj.distance;
+            document.getElementById('type').textContent = obj.type;
+            document.getElementById('discovered').textContent = obj.discovered;
+            document.getElementById('size').textContent = obj.size;
+            
+            infoPanel.style.left = `${Math.min(x + 30, window.innerWidth - 370)}px`;
+            infoPanel.style.top = `${Math.min(y + 70, window.innerHeight - 350)}px`;
+            infoPanel.classList.add('active');
+        }
+
+        function closeInfoPanel() {
+            infoPanel.classList.remove('active');
+        }
+
+        function zoomIn() {
+            zoom = Math.min(zoom * 1.3, 5);
+            document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+            drawSpace();
+        }
+
+        function zoomOut() {
+            zoom = Math.max(zoom / 1.3, 0.5);
+            document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+            drawSpace();
+        }
+
+        function resetView() {
+            zoom = 1;
+            offsetX = 0;
+            offsetY = 0;
+            document.getElementById('zoomLevel').textContent = '100%';
+            drawSpace();
+        }
+
+        // Mouse olayları
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX - offsetX;
+            startY = e.clientY - offsetY;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                offsetX = e.clientX - startX;
+                offsetY = e.clientY - startY;
+                drawSpace();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                zoomIn();
+            } else {
+                zoomOut();
+            }
+        });
+
+        // Info panel mouse leave
+        infoPanel.addEventListener('mouseleave', () => {
+            closeInfoPanel();
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    </script>
+</body>
+</html>
