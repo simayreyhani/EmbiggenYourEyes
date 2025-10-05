@@ -1,5 +1,7 @@
 # NASA Uzay Görüntü Keşif Platformu 🌌
 
+Demo için : https://embiggen-your-eyes-ruddy.vercel.app/
+
 [![LM Studio](https://img.shields.io/badge/LM%20Studio-Local%20AI-purple)](https://lmstudio.ai/)
 [![Ollama](https://img.shields.io/badge/Ollama-Powered-blue)](https://ollama.ai/)
 [![Cline](https://img.shields.io/badge/Cline-AI%20Assistant-green)](https://github.com/cline/cline)
