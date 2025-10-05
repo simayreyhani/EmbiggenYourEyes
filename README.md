@@ -196,6 +196,10 @@ Sorularınız için:
 
 </div>
 
+<img width="1841" height="1080" alt="cline" src="https://github.com/user-attachments/assets/aa7670f7-cd46-4e70-972e-e2fab5724867" />
+<img width="1844" height="1080" alt="lms" src="https://github.com/user-attachments/assets/91324e36-a331-40af-87a1-f40b27dac52d" />
+
+
 ## 🔮 Gelecek Planları
 
 - [ ] Gerçek NASA API entegrasyonu
